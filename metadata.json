@@ -1,0 +1,8 @@
+{
+  "name": "Remix SENAI Célula 1.A - Gestão Inteligente",
+  "description": "Plataforma de monitoramento, manutenção e apoio operacional para a célula de usinagem 1.A do SENAI, integrando gestão de ativos e assistência técnica via IA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remix SENAI Célula 1.A - Gestão Inteligente</title>
+    <meta name="description" content="Plataforma de monitoramento, manutenção e apoio operacional para a célula de usinagem 1.A do SENAI, integrando gestão de ativos e assistência técnica via IA." />
+    <meta property="og:title" content="Remix SENAI Célula 1.A - Gestão Inteligente" />
+    <meta property="og:description" content="Plataforma de monitoramento, manutenção e apoio operacional para a célula de usinagem 1.A do SENAI, integrando gestão de ativos e assistência técnica via IA." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Arial', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+              tech: ['Arial', 'sans-serif'],
+            },
+            colors: {
+              // Dynamic Theme Colors using CSS Variables
+              theme: {
+                bg: 'var(--bg)',
+                sidebar: 'var(--sidebar)',
+                card: 'var(--card)',
+                cardHover: 'var(--card-hover)',
+                input: 'var(--input)',
+                border: 'var(--border)',
+                text: {
+                  main: 'var(--text-main)',
+                  muted: 'var(--text-muted)',
+                  highlight: '#ef4444' 
+                },
+                accent: {
+                  start: '#ef4444',   // Red 500
+                  end: '#b91c1c',     // Red 700
+                  solid: '#ef4444',   // Red 500
+                  warning: '#f59e0b', // Amber 500
+                  tech: '#64748b',    // Slate 500
+                  danger: '#ef4444',  // Red 500
+                  dangerHover: '#dc2626' // Red 600
+                }
+              },
+              senai: {
+                blue: '#005CAA',
+                red: '#E30613',
+              }
+            },
+            boxShadow: {
+              'soft': 'var(--shadow-soft)', 
+              'glow': '0 0 15px rgba(239, 68, 68, 0.4)', 
+              'glow-red': '0 0 15px rgba(220, 38, 38, 0.5)',
+              'led': '0 0 5px rgba(239, 68, 68, 0.5), 0 0 10px rgba(185, 28, 28, 0.3)',
+            },
+            backgroundImage: {
+              'grid-pattern': "linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)",
+              'gradient-accent': "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)", // Red Gradient
+              'gradient-red': "linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)"
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        /* DARK BLUE THEME (Standard SENAI Industrial Dark) */
+        --bg: #0f172a;       /* Slate 900 (Deep Blue) */
+        --sidebar: #1e293b;  /* Slate 800 */
+        --card: #1e293b;     /* Slate 800 */
+        --card-hover: #334155; /* Slate 700 */
+        --input: #020617;    /* Slate 950 */
+        --border: #334155;   /* Slate 700 */
+        --text-main: #f8fafc; /* Slate 50 */
+        --text-muted: #94a3b8; /* Slate 400 */
+        --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+        --grid-color: rgba(56, 189, 248, 0.05); /* Very subtle blue grid */
+        --bg-gradient-start: #1e293b;
+        --bg-gradient-end: #0f172a;
+      }
+
+      [data-theme='light'] {
+        /* LIGHT THEME (Clean White/Blue) */
+        --bg: #f8fafc;       /* Slate 50 */
+        --sidebar: #ffffff;  /* White */
+        --card: #ffffff;     /* White */
+        --card-hover: #f1f5f9; /* Slate 100 */
+        --input: #f1f5f9;    /* Slate 100 */
+        --border: #cbd5e1;   /* Slate 300 */
+        --text-main: #0f172a; /* Slate 900 (Dark Blue Text) */
+        --text-muted: #64748b; /* Slate 500 */
+        --shadow-soft: 0 4px 20px -2px rgba(148, 163, 184, 0.15);
+        --grid-color: rgba(148, 163, 184, 0.1);
+        --bg-gradient-start: #ffffff;
+        --bg-gradient-end: #f8fafc;
+      }
+      
+      html {
+        font-size: 18px; /* Increased base size for public readability */
+      }
+
+      body {
+        background-color: var(--bg);
+        background-image: 
+          radial-gradient(circle at 50% 0%, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 60%),
+          linear-gradient(var(--grid-color) 1px, transparent 1px), 
+          linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+        background-size: 100% 100%, 40px 40px, 40px 40px;
+        background-attachment: fixed;
+        color: var(--text-main);
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        transition: background-color 0.3s ease, color 0.3s ease;
+        font-family: 'Arial', sans-serif;
+      }
+      
+      /* Refined Tech Borders */
+      .border-tech {
+        position: relative;
+      }
+      .border-tech::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 8px;
+        height: 8px;
+        border-bottom: 2px solid #ef4444; /* Red Accent */
+        border-right: 2px solid #ef4444; /* Red Accent */
+        opacity: 0.7;
+      }
+      
+      .border-tech-red::after {
+        border-color: #f43f5e;
+      }
+
+      /* Elegant Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px; /* Slightly wider for ease of use */
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+      }
+      .scroll-container::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      /* Utilities */
+      .bg-gradient-accent {
+        background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); /* Red Gradient */
+      }
+      .bg-gradient-red {
+        background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      }
+      .font-tech {
+        font-family: 'Arial', sans-serif;
+      }
+      
+      /* Smooth transitions */
+      button, a, div, input, select, textarea, span {
+        transition-property: color, background-color, border-color, transform, box-shadow, opacity;
+        transition-duration: 200ms;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Print Styles for Technical Reports & Safety Certificates */
+      @media print {
+        body {
+          background: #ffffff !important;
+          color: #000000 !important;
+          overflow: visible !important;
+        }
+        nav, header, aside, [vw], .print\\:hidden {
+          display: none !important;
+        }
+        .scroll-container {
+          overflow: visible !important;
+          height: auto !important;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+
+    <!-- VLibras Widget -->
+    <div vw class="enabled">
+      <div vw-access-button class="active"></div>
+      <div vw-plugin-wrapper>
+        <div class="vw-plugin-top-wrapper"></div>
+      </div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+      new window.VLibras.Widget('https://vlibras.gov.br/app');
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
