@@ -21,7 +21,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, isMobileMe
     { id: 'indicadores', label: 'INDICADORES', icon: <BarChart2 size={20} /> },
     { id: 'maquinas', label: 'MÁQUINAS', icon: <HardDrive size={20} /> },
     { id: 'fresa-safety', label: 'CHECKLIST FRESA', icon: <ShieldCheck size={20} /> },
-    { id: 'lubrificacao', label: 'LUBRIFICAÇÃO', icon: <Droplets size={20} /> },
     { id: 'prisma', label: 'GESTÃO', icon: <Box size={20} /> },
   ];
 

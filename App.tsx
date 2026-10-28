@@ -24,7 +24,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   const [currentView, setCurrentView] = useState('home');
-  const [lubricationMode, setLubricationMode] = useState<'semanal' | 'semestral' | 'hub'>('hub');
+  const [machineLubricationMode, setMachineLubricationMode] = useState<'semanal' | 'semestral' | 'history' | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [logs, setLogs] = useState<MaintenanceLog[]>(INITIAL_LOGS);
   
@@ -122,15 +122,18 @@ const App: React.FC = () => {
     // Reset selection if navigating to the list view via menu
     if (view === 'maquinas') {
       setSelectedMachineId(null);
-    }
-    if (view === 'lubrificacao') {
-      setLubricationMode('hub');
+      setMachineLubricationMode(null);
     }
   };
 
-  const handleOpenLubrication = (mode: 'semanal' | 'semestral' | 'hub') => {
-    setLubricationMode(mode);
-    setCurrentView('lubrificacao');
+  const handleOpenLubrication = (mode: 'semanal' | 'semestral' | 'history' | 'hub') => {
+    const targetMode = mode === 'semestral' ? 'semestral' : mode === 'history' ? 'history' : 'semanal';
+    const kone = machines.find(m => m.name.toLowerCase().includes('kone') || m.id === '1085926') || machines.find(m => m.name.toLowerCase().includes('fresa')) || machines[0];
+    if (kone) {
+      setSelectedMachineId(kone.id);
+    }
+    setMachineLubricationMode(targetMode);
+    setCurrentView('maquinas');
   };
 
   // Notification Handlers
@@ -177,7 +180,8 @@ const App: React.FC = () => {
             currentUser={userName}
             userRole={userRole}
             onNavigate={handleViewChange}
-            onOpenLubrication={handleOpenLubrication}
+            initialLubricationMode={machineLubricationMode}
+            onClearInitialLubricationMode={() => setMachineLubricationMode(null)}
           />
         );
       case 'prisma':
@@ -204,17 +208,24 @@ const App: React.FC = () => {
             }}
           />
         );
-      case 'lubrificacao':
+      case 'lubrificacao': {
+        const kone = machines.find(m => m.name.toLowerCase().includes('kone') || m.id === '1085926') || machines.find(m => m.name.toLowerCase().includes('fresa')) || machines[0];
         return (
-          <FresaLubricationModule 
-            machines={machines}
+          <MachineList 
+            machines={machines} 
+            setMachines={setMachines} 
+            selectedMachineId={selectedMachineId || (kone ? kone.id : null)}
+            setSelectedMachineId={setSelectedMachineId}
+            onAddOperationalLog={handleAddOperationalLog}
+            operationalLogs={operationalLogs}
             currentUser={userName}
             userRole={userRole}
-            initialType={lubricationMode}
-            onAddOperationalLog={handleAddOperationalLog}
             onNavigate={handleViewChange}
+            initialLubricationMode="semanal"
+            onClearInitialLubricationMode={() => setMachineLubricationMode(null)}
           />
         );
+      }
       default:
         return (
             <Dashboard 

@@ -843,7 +843,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </div>
                   </div>
                   <button
-                      onClick={() => onNavigate('lubrificacao')}
+                      onClick={() => onOpenLubrication ? onOpenLubrication('history') : onNavigate('maquinas')}
                       className="self-start sm:self-auto text-xs font-bold text-theme-accent-solid hover:text-white px-3 py-1.5 rounded-lg border border-theme-accent-solid/30 bg-theme-accent-solid/10 hover:bg-theme-accent-solid transition-all flex items-center gap-1.5 uppercase font-mono"
                   >
                       Ver Histórico e Relatórios <ArrowRight size={14} />
@@ -913,7 +913,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                           <button
                               onClick={() => {
                                   if (onOpenLubrication) onOpenLubrication('semanal');
-                                  else onNavigate('lubrificacao');
+                                  else onNavigate('maquinas');
                               }}
                               className="px-5 py-2.5 bg-theme-accent-solid hover:bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-glow transition-all hover:scale-105 flex items-center gap-2"
                           >
@@ -984,7 +984,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                           <button
                               onClick={() => {
                                   if (onOpenLubrication) onOpenLubrication('semestral');
-                                  else onNavigate('lubrificacao');
+                                  else onNavigate('maquinas');
                               }}
                               className="px-5 py-2.5 bg-theme-accent-danger hover:bg-red-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-glow-red transition-all hover:scale-105 flex items-center gap-2"
                           >

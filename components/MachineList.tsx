@@ -4,9 +4,10 @@ import { Machine, MachineStatus, ChatMessage, OperationalLog } from '../types';
 import { askTechnicalAssistant } from '../services/geminiService';
 import { 
   Folder, AlertCircle, CheckCircle2, Power, ArrowLeft, Tag, FileText, 
-  Plus, X, BookOpen, Zap, Droplet, Send, Bot, Loader2, Info, ArrowRight, ClipboardList, Lock, AlertTriangle, Save, ChevronDown, ChevronUp,
+  Plus, X, BookOpen, Zap, Droplet, Droplets, Send, Bot, Loader2, Info, ArrowRight, ClipboardList, Lock, AlertTriangle, Save, ChevronDown, ChevronUp,
   ZoomIn, ZoomOut, RotateCcw, Clock, Timer, History, HardDrive, Cpu, Calendar, Settings, CheckSquare, Printer, ExternalLink, ShieldCheck
 } from 'lucide-react';
+import FresaLubricationModule from './FresaLubricationModule';
 
 interface MachineListProps {
   machines: Machine[];
@@ -19,6 +20,8 @@ interface MachineListProps {
   userRole: string;
   onNavigate?: (view: string) => void;
   onOpenLubrication?: (mode: 'semanal' | 'semestral' | 'hub') => void;
+  initialLubricationMode?: 'semanal' | 'semestral' | 'history' | null;
+  onClearInitialLubricationMode?: () => void;
 }
 
 const MachineList: React.FC<MachineListProps> = ({ 
@@ -31,7 +34,9 @@ const MachineList: React.FC<MachineListProps> = ({
   currentUser, 
   userRole, 
   onNavigate,
-  onOpenLubrication
+  onOpenLubrication,
+  initialLubricationMode,
+  onClearInitialLubricationMode
 }) => {
   // Navigation States
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
@@ -55,6 +60,18 @@ const MachineList: React.FC<MachineListProps> = ({
   const [showInlineLubrication, setShowInlineLubrication] = useState(false);
   const [lubricationType, setLubricationType] = useState<'diario' | 'semanal' | 'mensal' | 'semestral' | 'anual' | null>(null);
   const [showLubricationReportModal, setShowLubricationReportModal] = useState(false);
+  
+  // In-Machine Full Lubrication Module State (Semanal, Semestral, Histórico sem sair da máquina)
+  const [inMachineLubricationView, setInMachineLubricationView] = useState<'none' | 'semanal' | 'semestral' | 'history'>('none');
+
+  useEffect(() => {
+    if (initialLubricationMode) {
+      setInMachineLubricationView(initialLubricationMode);
+      if (onClearInitialLubricationMode) {
+        onClearInitialLubricationMode();
+      }
+    }
+  }, [initialLubricationMode]);
 
   // Toast Notification State
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' | 'error' | 'info' } | null>(null);
@@ -372,14 +389,10 @@ const MachineList: React.FC<MachineListProps> = ({
   const handleLubricationClick = (type: 'diario' | 'semanal' | 'mensal' | 'semestral' | 'anual') => {
       if (!selectedMachine) return;
 
-      // Special case for Fresadora Kone: opens integrated module
+      // Special case for Fresadora Kone: opens questionnaire right inside machine
       if (isFresa && (type === 'semanal' || type === 'semestral')) {
           setLubricationType(type);
-          if (onOpenLubrication) {
-              onOpenLubrication(type);
-          } else if (onNavigate) {
-              onNavigate('lubrificacao');
-          }
+          setInMachineLubricationView(type);
           return;
       }
 
@@ -576,6 +589,58 @@ const MachineList: React.FC<MachineListProps> = ({
   // 1. DETAIL VIEW
   if (selectedMachine) {
     const calculatedDuration = calculateHoursDifference(hourControl.startTime, hourControl.endTime);
+
+    // In-Machine Full Lubrication Module (Keeps user inside machine without navigating away)
+    if (inMachineLubricationView !== 'none') {
+      return (
+        <div className="space-y-6 animate-fade-in h-full pb-12 relative">
+          {/* Machine Header with Back Button */}
+          <div className="bg-theme-card p-4 md:p-6 rounded-[24px] border border-theme-border flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setInMachineLubricationView('none')}
+                className="p-3 rounded-full bg-theme-input hover:bg-theme-cardHover text-theme-text-muted hover:text-white shadow-sm transition-colors border border-theme-border"
+                title="Voltar aos detalhes da máquina"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-theme-accent-danger font-bold">
+                    PLANO DE LUBRIFICAÇÃO DA MÁQUINA
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-theme-input border border-theme-border font-mono text-theme-text-muted">
+                    PAT: {selectedMachine.id}
+                  </span>
+                </div>
+                <h2 className="text-xl md:text-2xl font-bold font-tech uppercase text-theme-text-main flex items-center gap-2">
+                  <Droplets size={22} className="text-theme-accent-danger" />
+                  {selectedMachine.name} — Lubrificação & Histórico
+                </h2>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setInMachineLubricationView('none')}
+              className="px-4 py-2 bg-theme-input hover:bg-theme-card border border-theme-border rounded-xl text-xs font-bold uppercase tracking-wider text-theme-text-main transition flex items-center gap-2"
+            >
+              <ArrowLeft size={16} /> Voltar aos Detalhes da Máquina
+            </button>
+          </div>
+
+          {/* Full Integrated Questionnaire & History Module */}
+          <FresaLubricationModule 
+            machines={machines}
+            currentUser={currentUser}
+            userRole={userRole}
+            initialType={inMachineLubricationView}
+            onAddOperationalLog={onAddOperationalLog}
+            onClose={() => setInMachineLubricationView('none')}
+            isEmbedded={true}
+          />
+        </div>
+      );
+    }
 
     return (
         <div className="space-y-6 animate-fade-in h-full pb-8 relative">
@@ -1057,30 +1122,36 @@ const MachineList: React.FC<MachineListProps> = ({
                                         {showInlineLubrication && (
                                             <div className="mt-2 p-4 border-t border-theme-border animate-fade-in flex-1">
                                                 {isFresa && (
-                                                    <div className="mb-4 space-y-2 p-3 bg-theme-bg/60 border border-theme-border rounded-xl">
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-theme-accent-danger font-mono block">
-                                                            Planos Oficiais de Lubrificação Kone:
-                                                        </span>
+                                                    <div className="mb-4 space-y-3 p-4 bg-theme-bg/80 border border-theme-border rounded-xl">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-theme-accent-danger font-mono block">
+                                                                Planos de Lubrificação Kone (Dentro da Máquina):
+                                                            </span>
+                                                            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-theme-input text-theme-text-muted border border-theme-border">
+                                                                Sem sair da tela
+                                                            </span>
+                                                        </div>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                             <button
-                                                                onClick={() => {
-                                                                    if (onOpenLubrication) onOpenLubrication('semanal');
-                                                                    else if (onNavigate) onNavigate('lubrificacao');
-                                                                }}
-                                                                className="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 shadow-sm transition"
+                                                                onClick={() => setInMachineLubricationView('semanal')}
+                                                                className="py-3 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm transition hover:scale-[1.02]"
                                                             >
-                                                                <Droplet size={14} /> Lubrificação Semanal
+                                                                <Droplets size={16} /> Lubrificação Semanal
                                                             </button>
                                                             <button
-                                                                onClick={() => {
-                                                                    if (onOpenLubrication) onOpenLubrication('semestral');
-                                                                    else if (onNavigate) onNavigate('lubrificacao');
-                                                                }}
-                                                                className="py-2.5 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 shadow-sm transition"
+                                                                onClick={() => setInMachineLubricationView('semestral')}
+                                                                className="py-3 px-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm transition hover:scale-[1.02]"
                                                             >
-                                                                <Droplet size={14} /> Lubrificação Semestral
+                                                                <Droplets size={16} /> Lubrificação Semestral
                                                             </button>
                                                         </div>
+                                                        <button
+                                                            onClick={() => setInMachineLubricationView('history')}
+                                                            className="w-full py-2.5 bg-theme-card hover:bg-theme-cardHover text-theme-text-main border border-theme-border rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition hover:border-theme-accent-solid"
+                                                        >
+                                                            <History size={14} className="text-theme-accent-solid" />
+                                                            Ver Histórico e Laudos da Máquina
+                                                        </button>
                                                     </div>
                                                 )}
                                                 {isFresa || isRetifica || isNardini || isRomi || isSerra || isFuradeira ? (

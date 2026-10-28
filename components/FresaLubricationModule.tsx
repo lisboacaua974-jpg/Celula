@@ -3,16 +3,18 @@ import { Machine, FresaWeeklyLubrication, FresaSemiannualLubrication, FresaLubri
 import { 
   Droplet, Droplets, AlertTriangle, CheckCircle2, RotateCcw, Send, 
   Printer, Calendar, User, Search, Filter, FileText, Check, AlertCircle, 
-  ChevronRight, X, Info, ShieldAlert, Wrench, Sparkles, Clock, CheckSquare, Square
+  ChevronRight, X, Info, ShieldAlert, Wrench, Sparkles, Clock, CheckSquare, Square, ArrowLeft
 } from 'lucide-react';
 
 interface FresaLubricationModuleProps {
   machines: Machine[];
   currentUser?: string;
   userRole?: string;
-  initialType?: 'semanal' | 'semestral' | 'hub';
+  initialType?: 'semanal' | 'semestral' | 'hub' | 'history';
   onAddOperationalLog?: (log: OperationalLog) => void;
   onNavigate?: (view: string) => void;
+  onClose?: () => void;
+  isEmbedded?: boolean;
 }
 
 const STORAGE_KEY = 'senai_kone_lubrications';
@@ -41,15 +43,17 @@ const FresaLubricationModule: React.FC<FresaLubricationModuleProps> = ({
   initialType = 'hub',
   onAddOperationalLog,
   onNavigate,
+  onClose,
+  isEmbedded = false,
 }) => {
   // Active Tab: 'semanal' | 'semestral' | 'report' | 'history'
   const [activeTab, setActiveTab] = useState<'semanal' | 'semestral' | 'report' | 'history'>(
-    initialType === 'semestral' ? 'semestral' : initialType === 'semanal' ? 'semanal' : 'semanal'
+    initialType === 'semestral' ? 'semestral' : initialType === 'history' ? 'history' : 'semanal'
   );
 
   // Sync initialType when passed
   useEffect(() => {
-    if (initialType === 'semestral' || initialType === 'semanal') {
+    if (initialType === 'semestral' || initialType === 'semanal' || initialType === 'history') {
       setActiveTab(initialType);
     }
   }, [initialType]);
@@ -427,6 +431,23 @@ const FresaLubricationModule: React.FC<FresaLubricationModuleProps> = ({
           <button onClick={() => setToastMessage(null)} className="p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white">
             <X size={16} />
           </button>
+        </div>
+      )}
+
+      {/* In-Machine Navigation Header if Embedded */}
+      {onClose && (
+        <div className="flex items-center justify-between pb-1 print:hidden animate-fade-in">
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 bg-theme-card hover:bg-theme-cardHover border border-theme-border rounded-xl text-xs font-bold uppercase tracking-wider text-theme-text-main shadow-sm hover:border-theme-accent-solid transition flex items-center gap-2 group"
+          >
+            <ArrowLeft size={16} className="text-theme-accent-solid group-hover:-translate-x-1 transition-transform" />
+            Voltar aos Detalhes da Máquina
+          </button>
+          <div className="flex items-center gap-2 text-xs text-theme-text-muted font-mono">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Módulo Interno da Máquina</span>
+          </div>
         </div>
       )}
 
