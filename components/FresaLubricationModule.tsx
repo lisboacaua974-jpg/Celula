@@ -1339,12 +1339,23 @@ const FresaLubricationModule: React.FC<FresaLubricationModuleProps> = ({
       {activeTab === 'report' && activeReport && (
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4 bg-theme-card p-4 rounded-2xl border border-theme-border print:hidden">
-            <button
-              onClick={() => setActiveTab(activeReport.type === 'Semanal' ? 'semanal' : 'semestral')}
-              className="px-4 py-2 rounded-xl bg-theme-input hover:bg-theme-card text-xs font-bold text-theme-text-muted hover:text-white border border-theme-border transition"
-            >
-              ← Voltar ao Formulário
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center gap-2 transition hover:scale-105"
+                >
+                  <ArrowLeft size={16} /> Voltar para Informações da Máquina
+                </button>
+              )}
+              <button
+                onClick={() => setActiveTab(activeReport.type === 'Semanal' ? 'semanal' : 'semestral')}
+                className="px-4 py-2.5 rounded-xl bg-theme-input hover:bg-theme-card text-xs font-bold text-theme-text-muted hover:text-white border border-theme-border transition"
+              >
+                ← Voltar ao Formulário
+              </button>
+            </div>
             <button
               onClick={() => window.print()}
               className="px-5 py-2.5 rounded-xl bg-gradient-accent text-white font-bold text-xs uppercase tracking-wider shadow-glow flex items-center gap-2 hover:scale-105 transition"
@@ -1552,6 +1563,19 @@ const FresaLubricationModule: React.FC<FresaLubricationModuleProps> = ({
             </div>
 
           </div>
+
+          {/* Quick Return Button under Report */}
+          {onClose && (
+            <div className="pt-2 flex justify-center print:hidden">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm uppercase tracking-wider shadow-glow flex items-center justify-center gap-3 transition hover:scale-105"
+              >
+                <ArrowLeft size={20} /> Voltar para Informações da Máquina
+              </button>
+            </div>
+          )}
         </div>
       )}
 

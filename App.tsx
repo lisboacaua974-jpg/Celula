@@ -196,18 +196,23 @@ const App: React.FC = () => {
                 onAddReport={handleAddReport}
             />
         );
-      case 'fresa-safety':
+      case 'fresa-safety': {
+        const kone = machines.find(m => m.name.toLowerCase().includes('kone') || m.id === '1085926') || machines.find(m => m.name.toLowerCase().includes('fresa')) || machines[0];
         return (
-          <FresaSafetyQuestionnaire 
-            machines={machines}
+          <MachineList 
+            machines={machines} 
+            setMachines={setMachines} 
+            selectedMachineId={selectedMachineId || (kone ? kone.id : null)}
+            setSelectedMachineId={setSelectedMachineId}
+            onAddOperationalLog={handleAddOperationalLog}
+            operationalLogs={operationalLogs}
             currentUser={userName}
             userRole={userRole}
-            onAddOperationalLog={handleAddOperationalLog}
-            onUnlockMachine={(machId) => {
-              setMachines(prev => prev.map(m => m.id === machId ? { ...m, safetyCheckCompleted: true } : m));
-            }}
+            onNavigate={handleViewChange}
+            onClearInitialLubricationMode={() => setMachineLubricationMode(null)}
           />
         );
+      }
       case 'lubrificacao': {
         const kone = machines.find(m => m.name.toLowerCase().includes('kone') || m.id === '1085926') || machines.find(m => m.name.toLowerCase().includes('fresa')) || machines[0];
         return (

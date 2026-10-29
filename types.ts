@@ -18,6 +18,8 @@ export interface Machine {
   image: string;
   progress: number; // For the dashboard visualization (0-100)
   safetyCheckCompleted?: boolean; // Flag for mandatory safety questionnaire
+  lastSafetyCheckUser?: string; // Operator who validated safety
+  lastSafetyCheckDate?: string; // Date of safety validation (YYYY-MM-DD)
   operatingHours: number; // Total operating hours (Horímetro)
 }
 

@@ -8,6 +8,7 @@ import {
   ZoomIn, ZoomOut, RotateCcw, Clock, Timer, History, HardDrive, Cpu, Calendar, Settings, CheckSquare, Printer, ExternalLink, ShieldCheck
 } from 'lucide-react';
 import FresaLubricationModule from './FresaLubricationModule';
+import FresaSafetyQuestionnaire from './FresaSafetyQuestionnaire';
 
 interface MachineListProps {
   machines: Machine[];
@@ -63,6 +64,9 @@ const MachineList: React.FC<MachineListProps> = ({
   
   // In-Machine Full Lubrication Module State (Semanal, Semestral, Histórico sem sair da máquina)
   const [inMachineLubricationView, setInMachineLubricationView] = useState<'none' | 'semanal' | 'semestral' | 'history'>('none');
+  
+  // In-Machine Full Safety Module State (Questionário NR-12 sem sair da máquina)
+  const [inMachineSafetyView, setInMachineSafetyView] = useState(false);
 
   useEffect(() => {
     if (initialLubricationMode) {
@@ -137,9 +141,27 @@ const MachineList: React.FC<MachineListProps> = ({
   const selectedMachine = machines.find(m => m.id === selectedMachineId);
   const isBancada = selectedMachine?.name === 'Bancadas Didáticas';
   
-  // Lock logic: Locked if safety not completed AND NOT a bancada. 
-  // Admin bypass removed to enforce safety check on logout/login cycle.
-  const isLocked = selectedMachine && !selectedMachine.safetyCheckCompleted && !isBancada;
+  // Date check
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Lock logic:
+  // Safety checklist is mandatory EVERY DAY and FOR EVERY LOGGED-IN OPERATOR.
+  // Must match both today's date (YYYY-MM-DD) and current logged-in user name.
+  // Bancadas are exempt.
+  const isSafetyValidForCurrentSession = Boolean(
+    selectedMachine &&
+    selectedMachine.safetyCheckCompleted &&
+    selectedMachine.lastSafetyCheckDate === todayStr &&
+    selectedMachine.lastSafetyCheckUser &&
+    currentUser &&
+    selectedMachine.lastSafetyCheckUser.trim().toLowerCase() === currentUser.trim().toLowerCase()
+  );
+
+  const isLocked = Boolean(
+    selectedMachine && 
+    !isBancada && 
+    !isSafetyValidForCurrentSession
+  );
 
   // Check if machine is a Fresa or Retifica for specific lubrication forms
   const isFresa = selectedMachine ? (selectedMachine.name.toLowerCase().includes('fresa') || selectedMachine.type.toLowerCase().includes('fresa')) : false;
@@ -166,7 +188,7 @@ const MachineList: React.FC<MachineListProps> = ({
     }
   }, [aiMessages, selectedMachineId]);
 
-  // Reset AI chat, Manual, and Safety view when opening a new machine
+  // Reset AI chat, Manual, Safety view, and In-Machine Views when opening a new machine
   useEffect(() => {
     if (selectedMachineId && selectedMachine) {
         setAiMessages([{
@@ -178,6 +200,8 @@ const MachineList: React.FC<MachineListProps> = ({
         setShowInlineManual(false); 
         setManualScale(1);
         setShowInlineSafety(false);
+        setInMachineSafetyView(false);
+        setInMachineLubricationView('none');
         // setSafetyScale(1);
         setShowInlineLubrication(false);
         setLubricationType(null);
@@ -258,7 +282,7 @@ const MachineList: React.FC<MachineListProps> = ({
     // Links provided by user, converted to preview format for embedding
     if (name.includes('romi')) return 'https://drive.google.com/file/d/1qYn7PL53AjR0Z58YTBl2uGNAV6X9rtOQ/preview';
     if (name.includes('nardini')) return 'https://drive.google.com/file/d/1aR4usTinw_GPWavieh5haUrjH3IGykjN/preview';
-    if (name.includes('fresa') || type.includes('fresa')) return 'https://drive.google.com/file/d/10vVrdBLXv1jHo2CjKfyQB6h6-_dpNl4A/preview';
+    if (name.includes('fresa') || type.includes('fresa')) return '/assets/aistudio/portuguese---mill-operator_s-manual---2015_90f28470.pdf';
     if (name.includes('retífica') || name.includes('retifica') || type.includes('retífica')) return 'https://drive.google.com/file/d/1FmOUposHRLs_KELlt4qXUfzI233-T5Zu/preview';
     if (name.includes('serra') || type.includes('serra')) return 'https://drive.google.com/file/d/1TvE53IXkt6qsPtSetAJNn7IIUdQ6SgwB/preview';
     if (name.includes('esmeril') || type.includes('esmeril')) return 'https://drive.google.com/file/d/1ydX33ajxY8sFDJHEhoebl5BlcKGkk-nj/preview';
@@ -364,8 +388,18 @@ const MachineList: React.FC<MachineListProps> = ({
         return;
     }
     
-    // Unlock Machine
-    const updatedMachines = machines.map(m => m.id === selectedMachine.id ? { ...m, safetyCheckCompleted: true } : m);
+    // Unlock Machine for today and current operator
+    const updatedMachines = machines.map(m => 
+      m.id === selectedMachine.id 
+        ? { 
+            ...m, 
+            safetyCheckCompleted: true,
+            lastSafetyCheckUser: currentUser || 'Operador',
+            lastSafetyCheckDate: todayStr,
+            status: MachineStatus.OPERATIONAL
+          } 
+        : m
+    );
     setMachines(updatedMachines);
     
     // Add Log
@@ -637,6 +671,72 @@ const MachineList: React.FC<MachineListProps> = ({
             onAddOperationalLog={onAddOperationalLog}
             onClose={() => setInMachineLubricationView('none')}
             isEmbedded={true}
+          />
+        </div>
+      );
+    }
+
+    // In-Machine Full Safety Module (Keeps user inside machine without navigating away)
+    if (inMachineSafetyView) {
+      return (
+        <div className="space-y-6 animate-fade-in h-full pb-12 relative">
+          {/* Machine Header with Back Button */}
+          <div className="bg-theme-card p-4 md:p-6 rounded-[24px] border border-theme-border flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setInMachineSafetyView(false)}
+                className="p-3 rounded-full bg-theme-input hover:bg-theme-cardHover text-theme-text-muted hover:text-white shadow-sm transition-colors border border-theme-border"
+                title="Voltar aos detalhes da máquina"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-theme-accent-danger font-bold">
+                    INSPEÇÃO DE SEGURANÇA NR-12 (OBRIGATÓRIA)
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-theme-input border border-theme-border font-mono text-theme-text-muted">
+                    PAT: {selectedMachine.id}
+                  </span>
+                </div>
+                <h2 className="text-xl md:text-2xl font-bold font-tech uppercase text-theme-text-main flex items-center gap-2">
+                  <ShieldCheck size={22} className="text-theme-accent-danger" />
+                  {selectedMachine.name} — Questionário de Segurança NR-12
+                </h2>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setInMachineSafetyView(false)}
+              className="px-4 py-2 bg-theme-input hover:bg-theme-card border border-theme-border rounded-xl text-xs font-bold uppercase tracking-wider text-theme-text-main transition flex items-center gap-2"
+            >
+              <ArrowLeft size={16} /> Voltar aos Detalhes da Máquina
+            </button>
+          </div>
+
+          {/* Full Integrated Safety Questionnaire Inside Machine */}
+          <FresaSafetyQuestionnaire 
+            machines={machines}
+            currentUser={currentUser}
+            userRole={userRole}
+            isEmbedded={true}
+            onClose={() => setInMachineSafetyView(false)}
+            onAddOperationalLog={onAddOperationalLog}
+            onUnlockMachine={(machId, opName, inspDate) => {
+              const updatedMachines = machines.map(m =>
+                m.id === machId
+                  ? {
+                      ...m,
+                      safetyCheckCompleted: true,
+                      lastSafetyCheckUser: opName || currentUser,
+                      lastSafetyCheckDate: inspDate || todayStr,
+                      status: MachineStatus.OPERATIONAL,
+                    }
+                  : m
+              );
+              setMachines(updatedMachines);
+              showToast("Checklist de Segurança Concluído! Máquina desbloqueada com sucesso.", "success");
+            }}
           />
         </div>
       );
@@ -950,7 +1050,7 @@ const MachineList: React.FC<MachineListProps> = ({
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`text-xs font-bold px-2 py-1 rounded border ${isLocked ? 'text-red-400 border-red-500/30' : 'text-emerald-400 border-emerald-500/30'}`}>
+                                                    <span className={`text-xs font-bold px-2 py-1 rounded border ${isLocked ? 'text-red-400 border-red-500/30 bg-red-500/10' : 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'}`}>
                                                         {isLocked ? '*PENDENTE' : 'VERIFICADO'}
                                                     </span>
                                                     {showInlineSafety ? <ChevronUp size={18} className="text-theme-text-muted"/> : <ChevronDown size={18} className="text-theme-text-muted"/>}
@@ -962,13 +1062,39 @@ const MachineList: React.FC<MachineListProps> = ({
                                         {showInlineSafety && (
                                             <div className="mt-4 border-t border-theme-border pt-4 animate-fade-in flex-1">
                                                 
+                                                {/* Notice when Locked */}
+                                                {isLocked && (
+                                                    <div className="p-3 mb-4 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs flex items-start gap-2.5">
+                                                        <AlertTriangle size={18} className="shrink-0 text-red-400 mt-0.5" />
+                                                        <div className="space-y-1">
+                                                            <div className="font-bold uppercase tracking-wider text-[11px] text-red-400">
+                                                                Inspeção Obrigatória Pendente
+                                                            </div>
+                                                            <p className="text-[11px] opacity-90 leading-relaxed">
+                                                                {selectedMachine.lastSafetyCheckDate !== todayStr
+                                                                    ? `A inspeção de segurança deve ser respondida todos os dias. Nenhuma inspeção registrada para a data de hoje (${todayStr}).`
+                                                                    : `A inspeção de segurança deve ser respondida toda vez que o operador mudar. Operador atual: "${currentUser || 'Visitante'}".`}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {!isLocked && selectedMachine.lastSafetyCheckUser && (
+                                                    <div className="p-3 mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle2 size={16} className="text-emerald-400" />
+                                                            <span>Liberado para <strong>{selectedMachine.lastSafetyCheckUser}</strong> em {selectedMachine.lastSafetyCheckDate}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {/* Button for Integrated Fresa Questionnaire */}
-                                                {isFresa && onNavigate && (
+                                                {isFresa && (
                                                     <button
-                                                        onClick={() => onNavigate('fresa-safety')}
-                                                        className="w-full mb-3 py-3 bg-gradient-accent text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-glow flex items-center justify-center gap-2 hover:brightness-110 transition"
+                                                        onClick={() => setInMachineSafetyView(true)}
+                                                        className="w-full mb-3 py-3.5 bg-gradient-accent text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-glow flex items-center justify-center gap-2 hover:brightness-110 transition hover:scale-[1.02]"
                                                     >
-                                                        <ShieldCheck size={16} /> Abrir Questionário Oficial Fresa (NR-12)
+                                                        <ShieldCheck size={18} /> Abrir Questionário Oficial Fresa (NR-12)
                                                     </button>
                                                 )}
 
@@ -1431,20 +1557,39 @@ const MachineList: React.FC<MachineListProps> = ({
                                         <h4 className="text-xs font-bold text-theme-text-muted uppercase tracking-widest">Manuais</h4>
                                     </div>
                                     <div className="bg-theme-input rounded-2xl p-4 border border-theme-border">
-                                        <button onClick={handleOpenManual} className="w-full flex justify-between items-center group hover:bg-theme-card p-2 -m-2 rounded-xl transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-blue-500/20 text-blue-500"><ClipboardList size={24} /></div>
-                                                <div className="text-left">
-                                                    <div className="text-theme-text-main font-bold text-sm">Manual Técnico</div>
-                                                    <div className="text-xs text-theme-text-muted">PDF Online</div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <button onClick={handleOpenManual} className="flex-1 flex justify-between items-center group hover:bg-theme-card p-2 -m-2 rounded-xl transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 rounded-lg bg-blue-500/20 text-blue-500"><ClipboardList size={24} /></div>
+                                                    <div className="text-left">
+                                                        <div className="text-theme-text-main font-bold text-sm">
+                                                            {isFresa ? 'Manual do Operador — Fresadora (Haas / Português)' : 'Manual Técnico'}
+                                                        </div>
+                                                        <div className="text-xs text-theme-text-muted">
+                                                            {isFresa ? 'Documentação Oficial Completa (428 páginas)' : 'PDF Online'}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            {showInlineManual ? (
-                                                <ChevronUp size={18} className="text-blue-500 transition-colors" />
-                                            ) : (
-                                                <ArrowRight size={18} className="text-theme-text-muted group-hover:text-blue-500 transition-colors" />
+                                                {showInlineManual ? (
+                                                    <ChevronUp size={18} className="text-blue-500 transition-colors" />
+                                                ) : (
+                                                    <ArrowRight size={18} className="text-theme-text-muted group-hover:text-blue-500 transition-colors" />
+                                                )}
+                                            </button>
+
+                                            {isFresa && (
+                                                <a 
+                                                    href="/assets/aistudio/portuguese---mill-operator_s-manual---2015_90f28470.pdf" 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    download="manual_fresadora_haas_2015_pt.pdf"
+                                                    className="px-3 py-2 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition self-start sm:self-center shrink-0"
+                                                    title="Baixar Manual do Operador (PDF)"
+                                                >
+                                                    <FileText size={14} /> Baixar PDF
+                                                </a>
                                             )}
-                                        </button>
+                                        </div>
                                         
                                         {/* Inline PDF Viewer with Zoom Controls */}
                                         {showInlineManual && manualUrl && (

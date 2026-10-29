@@ -3,7 +3,7 @@ import { Machine, FresaSafetyInspection, OperationalLog } from '../types';
 import { 
   ShieldCheck, AlertTriangle, CheckCircle2, XCircle, Printer, RotateCcw, 
   Send, Calendar, Clock, User, Eye, Search, Filter, FileText, Check, 
-  AlertCircle, ChevronRight, X, ExternalLink, HardDrive, Info, ShieldAlert
+  AlertCircle, ChevronRight, X, ExternalLink, HardDrive, Info, ShieldAlert, ArrowLeft
 } from 'lucide-react';
 
 interface FresaSafetyQuestionnaireProps {
@@ -12,7 +12,9 @@ interface FresaSafetyQuestionnaireProps {
   userRole?: string;
   onInspectionComplete?: (inspection: FresaSafetyInspection) => void;
   onAddOperationalLog?: (log: OperationalLog) => void;
-  onUnlockMachine?: (machineId: string) => void;
+  onUnlockMachine?: (machineId: string, operatorName?: string, date?: string) => void;
+  onClose?: () => void;
+  isEmbedded?: boolean;
 }
 
 const STORAGE_KEY = 'senai_fresa_inspections';
@@ -24,6 +26,8 @@ const FresaSafetyQuestionnaire: React.FC<FresaSafetyQuestionnaireProps> = ({
   onInspectionComplete,
   onAddOperationalLog,
   onUnlockMachine,
+  onClose,
+  isEmbedded = false,
 }) => {
   // Filter fresas from machines
   const fresaMachines = machines.filter(m => 
@@ -271,9 +275,9 @@ const FresaSafetyQuestionnaire: React.FC<FresaSafetyQuestionnaireProps> = ({
       });
     }
 
-    // If safe, automatically unlock machine in Cell
+    // If safe, automatically unlock machine in Cell with operator and date
     if (isSafe && onUnlockMachine) {
-      onUnlockMachine(machineId);
+      onUnlockMachine(machineId, inspectorName, inspectionDate);
     }
 
     setToastMessage({
@@ -343,41 +347,53 @@ const FresaSafetyQuestionnaire: React.FC<FresaSafetyQuestionnaireProps> = ({
               </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex bg-theme-input p-1 rounded-xl border border-theme-border">
-              <button
-                onClick={() => setActiveTab('form')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
-                  activeTab === 'form' 
-                    ? 'bg-theme-accent-solid text-white shadow-glow' 
-                    : 'text-theme-text-muted hover:text-white'
-                }`}
-              >
-                Preencher Formulário
-              </button>
-              {submittedReport && (
+            {/* Navigation Tabs and Return Button */}
+            <div className="flex flex-wrap items-center gap-3">
+              {onClose && (
                 <button
-                  onClick={() => setActiveTab('report')}
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-xl bg-theme-input hover:bg-theme-card text-xs font-bold text-theme-text-main border border-theme-border flex items-center gap-2 transition hover:border-theme-accent-solid"
+                  title="Voltar para os detalhes e controles da máquina"
+                >
+                  <ArrowLeft size={16} /> Voltar para Máquina
+                </button>
+              )}
+              <div className="flex bg-theme-input p-1 rounded-xl border border-theme-border">
+                <button
+                  onClick={() => setActiveTab('form')}
                   className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
-                    activeTab === 'report' 
+                    activeTab === 'form' 
                       ? 'bg-theme-accent-solid text-white shadow-glow' 
                       : 'text-theme-text-muted hover:text-white'
                   }`}
                 >
-                  Laudo Atual
+                  Preencher Formulário
                 </button>
-              )}
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 ${
-                  activeTab === 'history' 
-                    ? 'bg-theme-accent-solid text-white shadow-glow' 
-                    : 'text-theme-text-muted hover:text-white'
-                }`}
-              >
-                <FileText size={14} />
-                Histórico ({inspectionsHistory.length})
-              </button>
+                {submittedReport && (
+                  <button
+                    onClick={() => setActiveTab('report')}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
+                      activeTab === 'report' 
+                        ? 'bg-theme-accent-solid text-white shadow-glow' 
+                        : 'text-theme-text-muted hover:text-white'
+                    }`}
+                  >
+                    Laudo Atual
+                  </button>
+                )}
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 ${
+                    activeTab === 'history' 
+                      ? 'bg-theme-accent-solid text-white shadow-glow' 
+                      : 'text-theme-text-muted hover:text-white'
+                  }`}
+                >
+                  <FileText size={14} />
+                  Histórico ({inspectionsHistory.length})
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1031,12 +1047,23 @@ const FresaSafetyQuestionnaire: React.FC<FresaSafetyQuestionnaireProps> = ({
 
           {/* Action Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 bg-theme-card p-4 rounded-2xl border border-theme-border print:hidden">
-            <button
-              onClick={() => setActiveTab('form')}
-              className="px-4 py-2 rounded-xl bg-theme-input hover:bg-theme-card text-xs font-bold text-theme-text-muted hover:text-white border border-theme-border transition"
-            >
-              ← Voltar ao Formulário
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center gap-2 transition hover:scale-105"
+                >
+                  <ArrowLeft size={16} /> Voltar para Informações da Máquina
+                </button>
+              )}
+              <button
+                onClick={() => setActiveTab('form')}
+                className="px-4 py-2.5 rounded-xl bg-theme-input hover:bg-theme-card text-xs font-bold text-theme-text-muted hover:text-white border border-theme-border transition"
+              >
+                ← Voltar ao Formulário
+              </button>
+            </div>
             <div className="flex gap-3">
               <button
                 onClick={handlePrint}
@@ -1255,6 +1282,19 @@ const FresaSafetyQuestionnaire: React.FC<FresaSafetyQuestionnaireProps> = ({
             </div>
 
           </div>
+
+          {/* Quick Return Button under Laudo */}
+          {onClose && (
+            <div className="pt-2 flex justify-center print:hidden">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm uppercase tracking-wider shadow-glow flex items-center justify-center gap-3 transition hover:scale-105"
+              >
+                <ArrowLeft size={20} /> Voltar para Informações da Máquina
+              </button>
+            </div>
+          )}
         </div>
       )}
 
